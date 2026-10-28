@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ThankYouNqPage from "@/components/ThankYouNqPage";
 
 export const metadata: Metadata = {
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function ThankYouNqRoute() {
-  return <ThankYouNqPage />;
+  return (
+    <Suspense fallback={<div className="page-loading">Loading…</div>}>
+      <ThankYouNqPage />
+    </Suspense>
+  );
 }

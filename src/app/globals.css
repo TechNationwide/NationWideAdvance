@@ -1264,3 +1264,20 @@ select[aria-invalid="true"] {
 .thankyou-nq .feature-row-in {
   margin-top: 0;
 }
+
+.nq-app-form {
+  background: var(--page);
+  padding: 8px 0 40px;
+}
+
+.app-shell--embedded {
+  background: transparent;
+}
+
+.app-shell--embedded .wrap {
+  padding-top: 0;
+}
+
+.app-shell--embedded .card {
+  margin-top: 0;
+}

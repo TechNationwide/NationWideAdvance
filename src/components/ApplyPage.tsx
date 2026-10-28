@@ -88,23 +88,21 @@ export default function ApplyPage() {
     if (Object.keys(next).length) return;
     saveLead(form);
 
-    // Same fork as live Unbounce: not qualified → thank-you-nq; qualified → full MCA form
+    // Always land on thank-you page with the full MCA form below.
+    // Criteria message shows only when screening does not qualify.
     const result = evaluateLeadEligibility(form);
+    const qs = new URLSearchParams({
+      req: form.capitalNeeded,
+      bn: form.businessName,
+      tib: form.timeInBusiness,
+      businessbankaccount: form.businessBankAccount,
+      ind: form.industry,
+      ph: form.phone,
+    });
     if (!result.qualified) {
-      const qs = new URLSearchParams({
-        req: form.capitalNeeded,
-        bn: form.businessName,
-        tib: form.timeInBusiness,
-        businessbankaccount: form.businessBankAccount,
-        ind: form.industry,
-        ph: form.phone,
-        reasons: result.reasons.join(","),
-      });
-      router.push(`/thank-you-nq?${qs.toString()}`);
-      return;
+      qs.set("reasons", result.reasons.join(","));
     }
-
-    router.push("/application");
+    router.push(`/thank-you-nq?${qs.toString()}`);
   }
 
   return (

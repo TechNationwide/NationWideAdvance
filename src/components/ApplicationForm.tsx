@@ -90,7 +90,12 @@ function formatAddress(street: string, city: string, state: string, zip: string)
   return `${street}, ${city}, ${state} ${zip}`;
 }
 
-export default function ApplicationForm() {
+export default function ApplicationForm({
+  embedded = false,
+}: {
+  /** When true, hide standalone logo/hero/footer — used inside thank-you page */
+  embedded?: boolean;
+}) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -404,9 +409,9 @@ export default function ApplicationForm() {
 
   if (doneRef) {
     return (
-      <div className="app-shell">
-        <BrandHeader />
-        <Hero />
+      <div className={embedded ? "app-shell app-shell--embedded" : "app-shell"}>
+        {!embedded ? <BrandHeader /> : null}
+        {!embedded ? <Hero /> : null}
         <main className="wrap gut">
           <div className="card">
             <div className="done-panel">
@@ -430,15 +435,15 @@ export default function ApplicationForm() {
             </div>
           </div>
         </main>
-        <AppMiniFooter />
+        {!embedded ? <AppMiniFooter /> : null}
       </div>
     );
   }
 
   return (
-    <div className="app-shell">
-      <BrandHeader />
-      <Hero />
+    <div className={embedded ? "app-shell app-shell--embedded" : "app-shell"}>
+      {!embedded ? <BrandHeader /> : null}
+      {!embedded ? <Hero /> : null}
       <main className="wrap gut">
         <div className="card">
           {leadMeta ? (
@@ -853,7 +858,7 @@ export default function ApplicationForm() {
           </form>
         </div>
       </main>
-      <AppMiniFooter />
+      {!embedded ? <AppMiniFooter /> : null}
     </div>
   );
 }

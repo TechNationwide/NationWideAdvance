@@ -1,6 +1,13 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import ApplicationForm from "@/components/ApplicationForm";
 import SiteFooter from "@/components/SiteFooter";
+import { evaluateLeadEligibility } from "@/lib/eligibility";
+import { readLead } from "@/lib/lead-storage";
+import { useEffect, useState } from "react";
 
 const FEATURES = [
   {
@@ -39,6 +46,21 @@ const STEPS = [
 ] as const;
 
 export default function ThankYouNqPage() {
+  const params = useSearchParams();
+  const [showCriteria, setShowCriteria] = useState(true);
+
+  useEffect(() => {
+    const reasons = params.get("reasons");
+    if (reasons) {
+      setShowCriteria(true);
+      return;
+    }
+    const lead = readLead();
+    if (lead) {
+      setShowCriteria(!evaluateLeadEligibility(lead).qualified);
+    }
+  }, [params]);
+
   return (
     <div className="marketing thankyou-nq">
       <header className="nq-topbar">
@@ -60,16 +82,29 @@ export default function ThankYouNqPage() {
         <div className="nq-hero-in">
           <p className="nq-eyebrow">Thank you</p>
           <h1>Thank you for your interest in Nationwide Advance.</h1>
-          <p className="nq-lede">Unfortunately we are only able to fund businesses that:</p>
-          <ul className="nq-criteria">
-            <li>Have a Business Bank Account with $20k+/monthly deposits</li>
-            <li>Have been in Business over 12 months</li>
-            <li>Have never defaulted on a business loan or restructured an MCA</li>
-          </ul>
+          {showCriteria ? (
+            <>
+              <p className="nq-lede">Unfortunately we are only able to fund businesses that:</p>
+              <ul className="nq-criteria">
+                <li>Have a Business Bank Account with $20k+/monthly deposits</li>
+                <li>Have been in Business over 12 months</li>
+                <li>Have never defaulted on a business loan or restructured an MCA</li>
+              </ul>
+            </>
+          ) : (
+            <p className="nq-lede">
+              Please complete the application below so our funding team can review your business.
+            </p>
+          )}
           <div className="nq-trust">
             <Image src="/site/mcafee.png" alt="McAfee Secure" width={95} height={35} unoptimized />
           </div>
         </div>
+      </section>
+
+      {/* Main MCA application form — Business → Owner → Bank → Review */}
+      <section className="nq-app-form" aria-label="Merchant cash advance application">
+        <ApplicationForm embedded />
       </section>
 
       <section className="feature-row">
