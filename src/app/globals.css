@@ -359,6 +359,30 @@ select[aria-invalid="true"] {
   gap: 14px;
 }
 
+.dl-widget-wrap {
+  display: grid;
+  gap: 8px;
+  justify-items: stretch;
+}
+
+.dl-widget {
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--maroon) 18%, transparent);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dl-widget-loading,
+.dl-widget-error {
+  font-size: 14px;
+  padding: 16px;
+  text-align: center;
+}
+
+.dl-widget-error {
+  color: var(--err, #b00020);
+}
+
 .bank h3 {
   margin: 0;
   font: 600 22px/1.15 var(--display);

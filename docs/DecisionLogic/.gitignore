@@ -1,0 +1,7 @@
+# Never commit live/sandbox credentials spreadsheet
+2.7-Integration-Credentials.xlsx
+**/2.7-Integration-Credentials.xlsx
+
+# Local extract helpers / raw text dumps (optional)
+_extract_*.py
+_pdf_extracts/

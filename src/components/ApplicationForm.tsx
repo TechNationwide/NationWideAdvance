@@ -6,10 +6,14 @@ import {
   FormEvent,
   type HTMLAttributes,
   type ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import DecisionLogicWidget, {
+  type DecisionLogicWidgetResult,
+} from "@/components/DecisionLogicWidget";
 import { DEMO_MODE, ENTITY_TYPES, STATES, STEP_LABELS } from "@/lib/constants";
 import { readLead } from "@/lib/lead-storage";
 import { maskEin, maskSsn, masks, type MaskKey } from "@/lib/masks";
@@ -46,8 +50,10 @@ type FieldErrors = Partial<Record<keyof FormState | "bank" | "consent", string>>
 type BankState = {
   connected: boolean;
   requestCode: string | null;
-  status: "idle" | "wait" | "ok" | "error";
+  status: "idle" | "wait" | "widget" | "ok" | "error";
   message: string;
+  mode: "demo" | "live" | null;
+  institutionName?: string;
 };
 
 const initialForm: FormState = {
@@ -104,6 +110,7 @@ export default function ApplicationForm({
     requestCode: null,
     status: "idle",
     message: "Not connected yet",
+    mode: null,
   });
   const [submitting, setSubmitting] = useState(false);
   const [doneRef, setDoneRef] = useState<string | null>(null);
@@ -314,60 +321,110 @@ export default function ApplicationForm({
     };
   }
 
+  const clearBankError = useCallback(() => {
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.bank;
+      return next;
+    });
+  }, []);
+
+  const onWidgetComplete = useCallback(
+    (result: DecisionLogicWidgetResult) => {
+      setBank({
+        connected: true,
+        requestCode: result.requestCode,
+        status: "ok",
+        mode: "live",
+        institutionName: result.institutionName,
+        message: result.institutionName
+          ? `Bank connected · ${result.institutionName} · Ref ${result.requestCode}`
+          : `Bank connected · Ref ${result.requestCode}`,
+      });
+      clearBankError();
+    },
+    [clearBankError],
+  );
+
+  const onWidgetError = useCallback((message: string) => {
+    setBank((prev) => ({
+      ...prev,
+      connected: false,
+      status: "error",
+      message,
+    }));
+  }, []);
+
   async function connectBank() {
     setBank((prev) => ({
       ...prev,
+      connected: false,
+      requestCode: null,
       status: "wait",
-      message: "Waiting for bank connection…",
+      message: "Starting secure bank session…",
+      mode: null,
+      institutionName: undefined,
     }));
     try {
-      if (DEMO_MODE) {
-        await new Promise((r) => setTimeout(r, 1400));
-        const requestCode = `DL-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-        setBank({
-          connected: true,
-          requestCode,
-          status: "ok",
-          message: `Bank connected · Ref ${requestCode}`,
-        });
-        setErrors((prev) => {
-          const next = { ...prev };
-          delete next.bank;
-          return next;
-        });
-        return;
-      }
-
       const res = await fetch("/api/decisionlogic/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerId: form.ein,
-          firstName: form.ownerFirstName,
-          lastName: form.ownerLastName,
-          email: form.email,
+          customerId: form.ein.replace(/\D/g, "") || undefined,
+          firstName: form.ownerFirstName.trim(),
+          lastName: form.ownerLastName.trim(),
+          email: form.email.trim(),
+          phone: form.phone,
+          ssn: form.ssn,
+          dob: form.dob,
+          street: form.homeStreet.trim() || form.bizStreet.trim(),
+          city: form.homeCity.trim() || form.bizCity.trim(),
+          state: form.homeState || form.bizState,
+          zip: form.homeZip || form.bizZip,
+          preferMatch: true,
         }),
       });
-      if (!res.ok) throw new Error("DecisionLogic start failed");
-      const data = (await res.json()) as { requestCode: string; url: string };
-      if (data.url) window.open(data.url, "_blank");
+      const data = (await res.json()) as {
+        requestCode?: string;
+        mode?: "demo" | "live";
+        error?: string;
+        hint?: string;
+      };
+      if (!res.ok || !data.requestCode) {
+        throw new Error(data.error || data.hint || "DecisionLogic start failed");
+      }
+
+      // Demo: no live widget (parent URL / IP not required). Simulate success.
+      if (data.mode === "demo" || DEMO_MODE) {
+        await new Promise((r) => setTimeout(r, 900));
+        setBank({
+          connected: true,
+          requestCode: data.requestCode,
+          status: "ok",
+          mode: "demo",
+          message: `Bank connected (demo) · Ref ${data.requestCode}`,
+        });
+        clearBankError();
+        return;
+      }
+
       setBank({
-        connected: true,
+        connected: false,
         requestCode: data.requestCode,
-        status: "ok",
-        message: `Bank connected · Ref ${data.requestCode}`,
+        status: "widget",
+        mode: "live",
+        message: "Complete bank login in the secure window below…",
       });
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next.bank;
-        return next;
-      });
-    } catch {
+    } catch (err) {
       setBank({
         connected: false,
         requestCode: null,
         status: "error",
-        message: "Couldn't start the bank connection. Try again.",
+        mode: null,
+        message:
+          err instanceof Error
+            ? err.message
+            : "Couldn't start the bank connection. Try again.",
       });
     }
   }
@@ -738,16 +795,40 @@ export default function ApplicationForm({
                     <li>Takes about 2 minutes</li>
                   </ul>
                   <div
-                    className={`status ${bank.status === "ok" ? "ok" : bank.status === "wait" ? "wait" : ""}`}
+                    className={`status ${bank.status === "ok" ? "ok" : bank.status === "wait" || bank.status === "widget" ? "wait" : ""}`}
                   >
                     <span className="dot" />
                     <span>{bank.message}</span>
                   </div>
-                  <div>
-                    <button type="button" className="btn primary" onClick={connectBank}>
-                      {bank.connected ? "Reconnect" : "Connect bank with DecisionLogic"}
-                    </button>
-                  </div>
+                  {bank.status !== "widget" && (
+                    <div>
+                      <button
+                        type="button"
+                        className="btn primary"
+                        onClick={connectBank}
+                        disabled={bank.status === "wait"}
+                      >
+                        {bank.connected ? "Reconnect" : "Connect bank with DecisionLogic"}
+                      </button>
+                    </div>
+                  )}
+                  {bank.status === "widget" && bank.requestCode && (
+                    <div className="dl-widget-wrap">
+                      <DecisionLogicWidget
+                        requestCode={bank.requestCode}
+                        onComplete={onWidgetComplete}
+                        onError={onWidgetError}
+                      />
+                      <button
+                        type="button"
+                        className="btn ghost"
+                        style={{ marginTop: 12 }}
+                        onClick={connectBank}
+                      >
+                        Restart bank connection
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <label className="check">
                   <input
@@ -817,7 +898,13 @@ export default function ApplicationForm({
                       label="DecisionLogic"
                       value={
                         bank.connected
-                          ? `Connected · ${bank.requestCode}`
+                          ? [
+                              bank.mode === "demo" ? "Demo" : "Live",
+                              bank.institutionName,
+                              bank.requestCode,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")
                           : "Not connected"
                       }
                     />
