@@ -110,7 +110,7 @@ export default function HomePage() {
     <div className="marketing">
       <SiteHeader />
 
-      <section className="home-hero">
+      <section className="home-hero" aria-label="Nationwide Advance home hero">
         <div className="home-hero-in">
           <div className="home-hero-copy">
             <p className="home-kicker">
@@ -121,49 +121,40 @@ export default function HomePage() {
               Empower your business with our flexible business financing. Secure your growth
               trajectory now.
             </p>
-          </div>
-          <div className="home-hero-art">
-            <Image
-              src="/site/hero-cartoon.jpg"
-              alt="Business owner ready to grow"
-              width={784}
-              height={756}
-              priority
-              unoptimized
-            />
+
+            <form className="home-start-card" onSubmit={onHeroContinue}>
+              <Image
+                src="/site/start-here.png"
+                alt="Start Here"
+                width={216}
+                height={61}
+                className="start-here-img"
+                priority
+                unoptimized
+              />
+              <label htmlFor="home-capital">How much capital does your business need?*</label>
+              <select
+                id="home-capital"
+                value={capital}
+                onChange={(e) => {
+                  setCapital(e.target.value);
+                  setError("");
+                }}
+              >
+                <option value="">Please select</option>
+                {CAPITAL_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+              {error ? <p className="field-err">{error}</p> : null}
+              <button type="submit" className="btn-maroon">
+                Continue
+              </button>
+            </form>
           </div>
         </div>
-
-        <form className="home-start-card" onSubmit={onHeroContinue}>
-          <Image
-            src="/site/start-here.png"
-            alt="Start Here"
-            width={216}
-            height={61}
-            className="start-here-img"
-            unoptimized
-          />
-          <label htmlFor="home-capital">How much capital does your business need?*</label>
-          <select
-            id="home-capital"
-            value={capital}
-            onChange={(e) => {
-              setCapital(e.target.value);
-              setError("");
-            }}
-          >
-            <option value="">Please select</option>
-            {CAPITAL_OPTIONS.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
-              </option>
-            ))}
-          </select>
-          {error ? <p className="field-err">{error}</p> : null}
-          <button type="submit" className="btn-maroon">
-            Continue
-          </button>
-        </form>
       </section>
 
       <section className="feature-row">
