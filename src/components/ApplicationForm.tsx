@@ -411,7 +411,7 @@ export default function ApplicationForm({
     return (
       <div className={embedded ? "app-shell app-shell--embedded" : "app-shell"}>
         {!embedded ? <BrandHeader /> : null}
-        {!embedded ? <Hero /> : null}
+        <Hero />
         <main className="wrap gut">
           <div className="card">
             <div className="done-panel">
@@ -443,7 +443,7 @@ export default function ApplicationForm({
   return (
     <div className={embedded ? "app-shell app-shell--embedded" : "app-shell"}>
       {!embedded ? <BrandHeader /> : null}
-      {!embedded ? <Hero /> : null}
+      <Hero />
       <main className="wrap gut">
         <div className="card">
           {leadMeta ? (

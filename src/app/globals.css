@@ -1266,18 +1266,26 @@ select[aria-invalid="true"] {
 }
 
 .nq-app-form {
-  background: var(--page);
-  padding: 8px 0 40px;
+  background: transparent;
+  padding: 0 0 40px;
 }
 
+/* Embedded form still needs the maroon color bar + overlapping card */
 .app-shell--embedded {
   background: transparent;
 }
 
-.app-shell--embedded .wrap {
-  padding-top: 0;
+.app-shell--embedded .band {
+  /* Keep full maroon hero bar on thank-you page */
+  display: block;
 }
 
-.app-shell--embedded .card {
-  margin-top: 0;
+.app-shell--embedded .wrap {
+  position: relative;
+  z-index: 2;
+}
+
+.thankyou-nq .nq-hero {
+  border-bottom: 0;
+  padding-bottom: 28px;
 }
