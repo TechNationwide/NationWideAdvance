@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nationwide Advance — Merchant Application
 
-## Getting Started
+Local 4-step merchant cash advance application for Nationwide Advance.
 
-First, run the development server:
+**Structure & fields** match the client-approved Claude artifact (Business → Owner → Bank → Review).  
+**Branding** uses Nationwide Advance logo, burgundy palette, and site fonts (not American Choice Capital).
+
+## Stack
+
+- Next.js 15 (App Router) + React + TypeScript
+- Nationwide brand CSS
+- Demo DecisionLogic + application submit APIs
+
+## Run locally
 
 ```bash
+cd nationwide-advance-app
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo mode
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`DEMO_MODE=true` and `NEXT_PUBLIC_DEMO_MODE=true` (see `.env.example`):
 
-## Learn More
+- **Connect bank** simulates DecisionLogic and shows a `DL-XXXXXX` reference
+- **Submit** accepts the JSON bundle locally and returns `NWA-XXXXXXX`
 
-To learn more about Next.js, take a look at the following resources:
+No real DecisionLogic or LoanPro calls are made in demo mode.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## API routes (ready for live wiring)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Route | Purpose |
+|-------|---------|
+| `POST /api/decisionlogic/start` | Create DecisionLogic request / return bank URL |
+| `POST /api/applications` | Bundle application + DL request code → LoanPro (LOS) |
 
-## Deploy on Vercel
+## Next step
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Wire live DecisionLogic (`CreateAndVerifyRequest`, etc.) using Call Follow Up credentials in env vars, then LoanPro sandbox when available.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+
+- SSN / EIN / DOB must not be logged in plaintext
+- Host on HTTPS before collecting real applicant data
+- Eligibility after the Unbounce lead form remains configurable for a later step
