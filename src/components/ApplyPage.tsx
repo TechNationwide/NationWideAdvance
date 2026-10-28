@@ -13,6 +13,7 @@ import {
   TIME_IN_BUSINESS_OPTIONS,
   type LeadData,
 } from "@/lib/lead-options";
+import { evaluateLeadEligibility } from "@/lib/eligibility";
 import { readLead, saveLead } from "@/lib/lead-storage";
 import { masks } from "@/lib/masks";
 
@@ -86,6 +87,23 @@ export default function ApplyPage() {
     setErrors(next);
     if (Object.keys(next).length) return;
     saveLead(form);
+
+    // Same fork as live Unbounce: not qualified → thank-you-nq; qualified → full MCA form
+    const result = evaluateLeadEligibility(form);
+    if (!result.qualified) {
+      const qs = new URLSearchParams({
+        req: form.capitalNeeded,
+        bn: form.businessName,
+        tib: form.timeInBusiness,
+        businessbankaccount: form.businessBankAccount,
+        ind: form.industry,
+        ph: form.phone,
+        reasons: result.reasons.join(","),
+      });
+      router.push(`/thank-you-nq?${qs.toString()}`);
+      return;
+    }
+
     router.push("/application");
   }
 
