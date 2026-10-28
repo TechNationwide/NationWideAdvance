@@ -1246,7 +1246,9 @@ select[aria-invalid="true"] {
 .nq-trust {
   display: flex;
   justify-content: center;
-  margin-top: 8px;
+  margin-top: 16px;
+  position: relative;
+  z-index: 1;
 }
 
 .nq-trust img {
@@ -1268,16 +1270,22 @@ select[aria-invalid="true"] {
 .nq-app-form {
   background: transparent;
   padding: 0 0 40px;
+  clear: both;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
 }
 
-/* Embedded form still needs the maroon color bar + overlapping card */
+/* Embedded form: keep maroon color bar fully visible */
 .app-shell--embedded {
   background: transparent;
 }
 
 .app-shell--embedded .band {
-  /* Keep full maroon hero bar on thank-you page */
-  display: block;
+  display: block !important;
+  visibility: visible !important;
+  min-height: 180px;
+  padding-block: 40px 120px;
 }
 
 .app-shell--embedded .wrap {
@@ -1286,6 +1294,10 @@ select[aria-invalid="true"] {
 }
 
 .thankyou-nq .nq-hero {
+  position: relative;
+  z-index: 1;
   border-bottom: 0;
-  padding-bottom: 28px;
+  padding-bottom: 36px;
+  margin-bottom: 0;
+  overflow: hidden;
 }

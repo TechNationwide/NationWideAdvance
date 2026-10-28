@@ -102,7 +102,7 @@ export default function ThankYouNqPage() {
         </div>
       </section>
 
-      {/* Main MCA application form — Business → Owner → Bank → Review */}
+      {/* Maroon color bar + full MCA form (Business → Owner → Bank → Review) */}
       <section className="nq-app-form" aria-label="Merchant cash advance application">
         <ApplicationForm embedded />
       </section>
