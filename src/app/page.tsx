@@ -1,5 +1,5 @@
-import ApplicationForm from "@/components/ApplicationForm";
+import HomePage from "@/components/HomePage";
 
-export default function HomePage() {
-  return <ApplicationForm />;
+export default function Page() {
+  return <HomePage />;
 }

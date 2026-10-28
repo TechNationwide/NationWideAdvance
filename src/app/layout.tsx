@@ -27,9 +27,12 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Nationwide Advance Application",
+  title: {
+    default: "Nationwide Advance – Empower your business with our flexible business financing.",
+    template: "%s | Nationwide Advance",
+  },
   description:
-    "Merchant cash advance application for Nationwide Advance — business, owner, bank verification, and review.",
+    "Empower your business with flexible business financing from Nationwide Advance. Apply for funding online.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

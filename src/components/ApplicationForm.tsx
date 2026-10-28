@@ -1,14 +1,17 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   FormEvent,
   type HTMLAttributes,
   type ReactNode,
+  useEffect,
   useMemo,
   useState,
 } from "react";
 import { DEMO_MODE, ENTITY_TYPES, STATES, STEP_LABELS } from "@/lib/constants";
+import { readLead } from "@/lib/lead-storage";
 import { maskEin, maskSsn, masks, type MaskKey } from "@/lib/masks";
 
 type FormState = {
@@ -100,8 +103,27 @@ export default function ApplicationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [doneRef, setDoneRef] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState("");
+  const [leadMeta, setLeadMeta] = useState<string>("");
 
   const today = useMemo(() => new Date(), []);
+
+  useEffect(() => {
+    const lead = readLead();
+    if (!lead) return;
+    setForm((prev) => ({
+      ...prev,
+      legalName: prev.legalName || lead.businessName || "",
+      phone: prev.phone || lead.phone || "",
+      productsServices: prev.productsServices || lead.industry || "",
+    }));
+    const bits = [
+      lead.capitalNeeded && `Capital: ${lead.capitalNeeded}`,
+      lead.timeInBusiness && `In business: ${lead.timeInBusiness}`,
+      lead.businessBankAccount && `Business bank: ${lead.businessBankAccount}`,
+      lead.industry && `Industry: ${lead.industry}`,
+    ].filter(Boolean);
+    setLeadMeta(bits.join(" · "));
+  }, []);
 
   function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => {
@@ -408,7 +430,7 @@ export default function ApplicationForm() {
             </div>
           </div>
         </main>
-        <SiteFooter />
+        <AppMiniFooter />
       </div>
     );
   }
@@ -419,6 +441,13 @@ export default function ApplicationForm() {
       <Hero />
       <main className="wrap gut">
         <div className="card">
+          {leadMeta ? (
+            <div className="lead-banner">
+              <strong>Step 2 of 2 — Full application</strong>
+              <span>{leadMeta}</span>
+              <Link href="/apply">Edit screening answers</Link>
+            </div>
+          ) : null}
           <ol className="steps" aria-label="Application progress">
             {STEP_LABELS.map((label, i) => (
               <li key={label} className={i < step ? "done" : i === step ? "on" : ""}>
@@ -824,7 +853,7 @@ export default function ApplicationForm() {
           </form>
         </div>
       </main>
-      <SiteFooter />
+      <AppMiniFooter />
     </div>
   );
 }
@@ -863,11 +892,13 @@ function Hero() {
   );
 }
 
-function SiteFooter() {
+function AppMiniFooter() {
   return (
-    <footer className="site-footer gut">
-      <span>© 2026 Nationwide Advance. All Rights Reserved.</span>
-      <span>Questions? 888-891-6772</span>
+    <footer className="app-mini-footer gut">
+      <span>© {new Date().getFullYear()} Nationwide Advance. All Rights Reserved.</span>
+      <span>
+        Questions? <a href="tel:8888916772">888-891-6772</a>
+      </span>
     </footer>
   );
 }
