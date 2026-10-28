@@ -58,9 +58,10 @@ img {
 }
 
 .brandbar img {
-  height: 56px;
+  height: 72px;
   width: auto;
   display: block;
+  object-fit: contain;
 }
 
 .band {

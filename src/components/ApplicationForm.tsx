@@ -833,13 +833,15 @@ function BrandHeader() {
   return (
     <div className="brandbar gut">
       <div className="brandbar-in" aria-label="Nationwide Advance">
+        {/* Same clear lockup used by SMS Agent / Submission Portal (chart + NATIONWIDE + ADVANCE) */}
         <Image
-          src="/nationwide-logo.png"
+          src="/nationwide-logo-clear.png"
           alt="Nationwide Advance"
-          width={220}
-          height={80}
+          width={308}
+          height={192}
           priority
-          style={{ height: 56, width: "auto" }}
+          unoptimized
+          style={{ height: 72, width: "auto" }}
         />
       </div>
     </div>
