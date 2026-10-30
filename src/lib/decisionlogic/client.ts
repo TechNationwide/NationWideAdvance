@@ -115,13 +115,27 @@ export async function createAndVerifyRequest(
     body.matchDobYear = dob.year;
   }
 
-  const raw = await dlPost<string>("CreateAndVerifyRequest", body);
-  const requestCode = typeof raw.data === "string" ? raw.data.trim() : "";
+  const raw = await dlPost<string | { requestCode?: string; RequestCode?: string }>(
+    "CreateAndVerifyRequest",
+    body,
+  );
+  // API may return data as a bare string OR { requestCode: "..." }
+  const requestCode = extractRequestCode(raw.data);
   if (!requestCode) {
     throw new Error("DecisionLogic CreateAndVerifyRequest returned an empty request code.");
   }
 
   return { requestCode, matchType, raw };
+}
+
+function extractRequestCode(data: unknown): string {
+  if (typeof data === "string") return data.trim();
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    const code = obj.requestCode ?? obj.RequestCode;
+    if (typeof code === "string") return code.trim();
+  }
+  return "";
 }
 
 export async function getReportDetailsFromRequestCode(requestCode: string) {
