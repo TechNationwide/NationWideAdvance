@@ -31,6 +31,25 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return null;
 }
 
+function fromPayloadObject(wrapped: Record<string, unknown>): DecisionLogicWidgetResult {
+  const statusRaw = wrapped.status ?? wrapped.Status;
+  const statusNum =
+    typeof statusRaw === "number" ? statusRaw : statusRaw != null ? Number(statusRaw) : undefined;
+  const institution = String(wrapped.institutionName || wrapped.InstitutionName || "").trim();
+  return {
+    requestCode: String(wrapped.requestCode || wrapped.RequestCode || ""),
+    status: Number.isFinite(statusNum) ? statusNum : undefined,
+    institutionName: institution || undefined,
+    numberOfAccounts: (wrapped.numberOfAccounts || wrapped.NumberOfAccounts) as number | undefined,
+    isCheckingAccountFound: (wrapped.isCheckingAccountFound ||
+      wrapped.IsCheckingAccountFound) as boolean | undefined,
+    isPayrollFound: (wrapped.isPayrollFound || wrapped.IsPayrollFound) as boolean | undefined,
+    isIDVSuccessful: (wrapped.isIDVSuccessful || wrapped.IsIDVSuccessful) as boolean | undefined,
+    customerId: (wrapped.customerId || wrapped.CustomerId) as string | undefined,
+    raw: wrapped,
+  };
+}
+
 function parseWidgetDetail(detail: unknown): DecisionLogicWidgetResult | null {
   if (detail == null) return null;
 
@@ -39,45 +58,72 @@ function parseWidgetDetail(detail: unknown): DecisionLogicWidgetResult | null {
   if (wrapped?.getEvent != null) {
     return parseWidgetDetail(wrapped.getEvent);
   }
-  if (wrapped?.detail != null) {
+  if (wrapped?.detail != null && wrapped.detail !== detail) {
     return parseWidgetDetail(wrapped.detail);
   }
   if (wrapped && (wrapped.requestCode || wrapped.RequestCode || wrapped.status != null || wrapped.Status != null)) {
-    const statusRaw = wrapped.status ?? wrapped.Status;
-    const statusNum =
-      typeof statusRaw === "number" ? statusRaw : statusRaw != null ? Number(statusRaw) : undefined;
-    return {
-      requestCode: String(wrapped.requestCode || wrapped.RequestCode || ""),
-      status: Number.isFinite(statusNum) ? statusNum : undefined,
-      institutionName: (wrapped.institutionName || wrapped.InstitutionName) as string | undefined,
-      numberOfAccounts: (wrapped.numberOfAccounts || wrapped.NumberOfAccounts) as number | undefined,
-      isCheckingAccountFound: (wrapped.isCheckingAccountFound ||
-        wrapped.IsCheckingAccountFound) as boolean | undefined,
-      isPayrollFound: (wrapped.isPayrollFound || wrapped.IsPayrollFound) as boolean | undefined,
-      isIDVSuccessful: (wrapped.isIDVSuccessful || wrapped.IsIDVSuccessful) as boolean | undefined,
-      customerId: (wrapped.customerId || wrapped.CustomerId) as string | undefined,
-      raw: wrapped,
-    };
+    return fromPayloadObject(wrapped);
   }
 
-  let text = typeof detail === "string" ? detail : JSON.stringify(detail);
+  if (typeof detail !== "string") return null;
+
+  let text = detail.trim();
+  if (!text) return null;
   // Docs: payload may be prefixed as `Json|{ ... }`
   const pipe = text.indexOf("|");
   if (pipe >= 0 && /json/i.test(text.slice(0, pipe))) {
     text = text.slice(pipe + 1);
   }
   try {
-    return parseWidgetDetail(JSON.parse(text));
+    const parsed = JSON.parse(text) as unknown;
+    if (parsed === detail) return null;
+    return parseWidgetDetail(parsed);
   } catch {
-    return { requestCode: "", raw: detail };
+    return null;
   }
 }
 
 function isVerifiedResult(parsed: DecisionLogicWidgetResult): boolean {
   if (parsed.status === 3 || parsed.status === 600) return true;
   // Some profiles return institution on success without a numeric status.
-  if (parsed.institutionName && (parsed.requestCode || parsed.status == null)) return true;
+  if (parsed.institutionName && parsed.requestCode) return true;
   return false;
+}
+
+function looksLikeDecisionLogicMessage(data: unknown): boolean {
+  if (typeof data === "string") {
+    return /json\s*\|/i.test(data) || /requestCode|institutionName|"status"\s*:/i.test(data);
+  }
+  const obj = asRecord(data);
+  if (!obj) return false;
+  return Boolean(
+    obj.getEvent != null ||
+      obj.requestCode != null ||
+      obj.RequestCode != null ||
+      obj.status != null ||
+      obj.Status != null,
+  );
+}
+
+function reportLooksVerified(body: Record<string, unknown>): DecisionLogicWidgetResult | null {
+  const data = asRecord(body.data) || body;
+  const detailsRaw = data.reportsDetails ?? data.ReportsDetails;
+  const details = Array.isArray(detailsRaw) ? asRecord(detailsRaw[0]) : null;
+  const row = details || data;
+  const statusRaw = row.status ?? row.Status;
+  const status =
+    typeof statusRaw === "number" ? statusRaw : statusRaw != null ? Number(statusRaw) : undefined;
+  const institutionName = String(row.institutionName || row.InstitutionName || "").trim();
+  const verifiedFlag = Boolean(row.isVerified || row.IsVerified || row.isLoginValid || row.IsLoginValid || row.isCompleted || row.IsCompleted);
+  if (status === 3 || status === 600 || verifiedFlag) {
+    return {
+      requestCode: String(row.requestCode || row.RequestCode || ""),
+      status: Number.isFinite(status) ? status : 3,
+      institutionName: institutionName || undefined,
+      raw: body,
+    };
+  }
+  return null;
 }
 
 function collectText(root: ParentNode | null | undefined): string {
@@ -157,9 +203,9 @@ export default function DecisionLogicWidget({
       onComplete?.({ ...parsed, requestCode: parsed.requestCode || requestCode });
     };
 
-    const handleParsed = (parsed: DecisionLogicWidgetResult | null) => {
+    const handleParsed = (parsed: DecisionLogicWidgetResult | null, fromWidgetEvent: boolean) => {
       if (!parsed) {
-        onError?.("DecisionLogic widget returned an empty result.");
+        if (fromWidgetEvent) onError?.("DecisionLogic widget returned an empty result.");
         return;
       }
       if (parsed.status != null && parsed.status < 0) {
@@ -175,11 +221,12 @@ export default function DecisionLogicWidget({
 
     const onGetEvent = (event: Event) => {
       const custom = event as CustomEvent;
-      handleParsed(parseWidgetDetail(custom.detail));
+      handleParsed(parseWidgetDetail(custom.detail), true);
     };
 
     const onMessage = (event: MessageEvent) => {
-      handleParsed(parseWidgetDetail(event.data));
+      if (!looksLikeDecisionLogicMessage(event.data)) return;
+      handleParsed(parseWidgetDetail(event.data), false);
     };
 
     // Docs attach on the widget element; some builds bubble poorly — listen both places.
@@ -210,7 +257,7 @@ export default function DecisionLogicWidget({
     if (host) observer?.observe(host, { childList: true, subtree: true, characterData: true });
     const pollDom = window.setInterval(checkDomSuccess, 1500);
 
-    // Fallback: poll report API until login verified (status 3).
+    // Fallback: poll report API until DecisionLogic marks the request verified.
     const pollReport = window.setInterval(() => {
       if (finished) return;
       void fetch("/api/decisionlogic/report", {
@@ -221,19 +268,8 @@ export default function DecisionLogicWidget({
         .then(async (res) => {
           if (!res.ok) return;
           const body = (await res.json()) as Record<string, unknown>;
-          const data = asRecord(body.data) || asRecord(body) || {};
-          const statusRaw = data.status ?? data.Status ?? data.requestStatus ?? data.RequestStatus;
-          const status =
-            typeof statusRaw === "number" ? statusRaw : statusRaw != null ? Number(statusRaw) : undefined;
-          const institutionName = (data.institutionName || data.InstitutionName) as string | undefined;
-          if (status === 3 || status === 600 || institutionName) {
-            complete({
-              requestCode,
-              status: Number.isFinite(status) ? status : 3,
-              institutionName,
-              raw: body,
-            });
-          }
+          const verified = reportLooksVerified(body);
+          if (verified) complete({ ...verified, requestCode: verified.requestCode || requestCode });
         })
         .catch(() => {
           /* ignore transient poll errors */
