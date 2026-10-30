@@ -1,15 +1,37 @@
 # Nationwide Advance — Merchant Application
 
-Local 4-step merchant cash advance application for Nationwide Advance.
+Next.js 15 app for the Nationwide Advance merchant cash advance application  
+(Business → Owner → Bank → Review) with DecisionLogic IAV and LoanPro submit stub.
 
-**Structure & fields** match the client-approved Claude artifact (Business → Owner → Bank → Review).  
-**Branding** uses Nationwide Advance logo, burgundy palette, and site fonts (not American Choice Capital).
+**Workspace docs:** see [`../PROJECT.md`](../PROJECT.md) and [`../docs/`](../docs/).
 
 ## Stack
 
-- Next.js 15 (App Router) + React + TypeScript
+- Next.js 15 (App Router) + React 19 + TypeScript
 - Nationwide brand CSS
-- Demo DecisionLogic + application submit APIs
+- DecisionLogic REST client + widget (demo or live)
+- Application submit API (demo accept / LoanPro stub)
+
+## Folder layout (this app)
+
+```
+nationwide-advance-app/
+├── src/
+│   ├── app/                 # Pages + API routes
+│   │   ├── apply/           # Lead screening
+│   │   ├── thank-you-nq/    # Thank-you + embedded MCA form
+│   │   ├── application/     # Standalone 4-step form
+│   │   └── api/
+│   │       ├── decisionlogic/  # start | report | refresh
+│   │       └── applications/   # submit → LoanPro (stub)
+│   ├── components/          # UI (ApplicationForm, DecisionLogicWidget, …)
+│   └── lib/                 # eligibility, decisionlogic client, masks
+├── public/                  # Logos & site images
+├── scripts/                 # Local DecisionLogic API smoke test
+├── docs/                    # Pointers to ../../docs
+├── .env.example
+└── .env.local               # secrets — do not commit
+```
 
 ## Run locally
 
@@ -25,24 +47,23 @@ Open [http://localhost:3000](http://localhost:3000).
 
 `DEMO_MODE=true` and `NEXT_PUBLIC_DEMO_MODE=true` (see `.env.example`):
 
-- **Connect bank** simulates DecisionLogic and shows a `DL-XXXXXX` reference
+- **Connect bank** simulates DecisionLogic and shows a reference code
 - **Submit** accepts the JSON bundle locally and returns `NWA-XXXXXXX`
 
 No real DecisionLogic or LoanPro calls are made in demo mode.
 
-## API routes (ready for live wiring)
+## Live DecisionLogic smoke test
 
-| Route | Purpose |
-|-------|---------|
-| `POST /api/decisionlogic/start` | Create DecisionLogic request / return bank URL |
-| `POST /api/applications` | Bundle application + DL request code → LoanPro (LOS) |
+Credentials: `../docs/integrations/decisionlogic/2.7-Integration-Credentials.xlsx` → `.env.local`
 
-## Next step
-
-Wire live DecisionLogic (`CreateAndVerifyRequest`, etc.) using Call Follow Up credentials in env vars, then LoanPro sandbox when available.
+```bash
+node scripts/test-decisionlogic.mjs
+# optional: DEMO_MODE=false NEXT_PUBLIC_DEMO_MODE=false npm run dev
+# then POST http://localhost:3000/api/decisionlogic/start
+```
 
 ## Notes
 
 - SSN / EIN / DOB must not be logged in plaintext
 - Host on HTTPS before collecting real applicant data
-- Eligibility after the Unbounce lead form remains configurable for a later step
+- Production: https://nationwideadvance.vercel.app
