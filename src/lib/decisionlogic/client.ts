@@ -63,7 +63,11 @@ function parseDob(dob?: string): { day?: number; month?: number; year?: number }
  */
 export async function createAndVerifyRequest(
   input: StartVerificationInput,
-): Promise<{ requestCode: string; matchType: number; raw: DecisionLogicEnvelope<string> }> {
+): Promise<{
+  requestCode: string;
+  matchType: number;
+  raw: DecisionLogicEnvelope<string | { requestCode?: string; RequestCode?: string }>;
+}> {
   const serviceKey = requiredEnv("DECISIONLOGIC_SERVICE_KEY");
   const siteUserGuid = requiredEnv("DECISIONLOGIC_SITE_USER_GUID");
   const profileGuid = requiredEnv("DECISIONLOGIC_PROFILE_GUID");
